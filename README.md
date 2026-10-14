@@ -101,3 +101,7 @@ cargo test --release                              # 49 tests, including a 15-min
 cargo run --release --bin snapshot -- shots       # PNG screenshots in ./shots
 cargo run --release --example balance             # balance statistics
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).

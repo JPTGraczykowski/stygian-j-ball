@@ -3,6 +3,7 @@ name = "stygian-j-ball"
 version = "0.1.0"
 edition = "2024"
 description = "A DX-Ball clone with Ultima Underworld-style pixel art"
+license = "MIT"
 default-run = "stygian-j-ball"
 
 [lib]
