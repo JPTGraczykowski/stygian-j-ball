@@ -6,6 +6,7 @@
 
 pub mod app;
 pub mod consts;
+pub mod fx;
 pub mod game;
 pub mod gfx;
 pub mod levels;
