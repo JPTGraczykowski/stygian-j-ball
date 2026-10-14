@@ -3,10 +3,15 @@ name = "stygian-j-ball"
 version = "0.1.0"
 edition = "2024"
 description = "A DX-Ball clone with Ultima Underworld-style pixel art"
+default-run = "stygian-j-ball"
 
 [lib]
 name = "stygian"
 path = "src/lib.rs"
+
+[[bin]]
+name = "stygian-j-ball"
+path = "src/main.rs"
 
 [dependencies]
 image = { version = "0.24.9", default-features = false, features = ["png"] }
