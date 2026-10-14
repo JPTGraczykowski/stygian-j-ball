@@ -4,6 +4,7 @@
 //! headlessly: game rules (`game`), screen flow (`app`), a software pixel renderer
 //! (`gfx`), cosmetic effects (`fx`) and procedural sound synthesis (`audio`).
 
+pub mod app;
 pub mod consts;
 pub mod game;
 pub mod levels;
