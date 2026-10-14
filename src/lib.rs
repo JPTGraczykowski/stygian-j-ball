@@ -5,4 +5,5 @@
 //! (`gfx`), cosmetic effects (`fx`) and procedural sound synthesis (`audio`).
 
 pub mod consts;
+pub mod levels;
 pub mod rng;
