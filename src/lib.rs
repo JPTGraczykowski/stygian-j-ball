@@ -5,6 +5,7 @@
 //! (`gfx`), cosmetic effects (`fx`) and procedural sound synthesis (`audio`).
 
 pub mod app;
+pub mod audio;
 pub mod consts;
 pub mod fx;
 pub mod game;
