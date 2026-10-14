@@ -1,0 +1,23 @@
+[package]
+name = "stygian-j-ball"
+version = "0.1.0"
+edition = "2024"
+description = "A DX-Ball clone with Ultima Underworld-style pixel art"
+
+[lib]
+name = "stygian"
+path = "src/lib.rs"
+
+[dependencies]
+image = { version = "0.24.9", default-features = false, features = ["png"] }
+macroquad = { version = "0.4", features = ["audio"] }
+
+# The software renderer touches every pixel each frame; keep debug builds playable.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+lto = "thin"
