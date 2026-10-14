@@ -9,6 +9,14 @@ Everything is generated in code. There are no image or sound files: sprites are
 string-art or procedural noise, the corridor is ray-cast once and re-lit with dithering
 every frame, and the sound effects and dungeon music are synthesised at startup.
 
+| | |
+| --- | --- |
+| ![Title screen](docs/screenshots/title.png) | ![Fireball, crossbow and split orbs on level X](docs/screenshots/fire.png) |
+| ![Level V: Crystal Caverns](docs/screenshots/crystal.png) | ![Tome of Lore: the power-ups](docs/screenshots/lore.png) |
+
+The screenshots come from `cargo run --release --bin snapshot`, which renders
+scripted scenes with the game's own renderer.
+
 ## Running
 
 ```sh
