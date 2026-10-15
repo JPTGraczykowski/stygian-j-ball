@@ -44,7 +44,8 @@ python3 -m http.server -d target/web    # then open http://localhost:8000
 ```
 
 `target/web` is a static site (an HTML page, the `.wasm` file and macroquad's JS
-glue), so any static host can serve it. It has to be served over HTTP; opening
+glue), so any static host can serve it. Every push to `main` publishes it to GitHub
+Pages (`.github/workflows/pages.yml`). It has to be served over HTTP; opening
 `index.html` from disk won't load the `.wasm`. `mise install` adds the
 `wasm32-unknown-unknown` target; without mise, run
 `rustup target add wasm32-unknown-unknown`.
