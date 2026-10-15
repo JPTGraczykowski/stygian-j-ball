@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Stygian J-Ball</title>
+<style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #a89060;
+    font: 16px/1.4 Georgia, serif;
+  }
+  /* The message sits behind the canvas and is covered once the game draws. */
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+  #glcanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    touch-action: none;
+  }
+</style>
+</head>
+<body>
+<div id="loading">Descending into the Abyss&hellip;</div>
+<canvas id="glcanvas" tabindex="1"></canvas>
+<script>
+  // The bundle's networking plugin assigns this undeclared global under "use strict".
+  var register_plugin;
+</script>
+<script src="mq_js_bundle.js"></script>
+<script src="storage.js"></script>
+<script>
+  // `canvas` is the #glcanvas global that the bundle declares.
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.focus();
+  load("stygian-j-ball.wasm");
+</script>
+</body>
+</html>

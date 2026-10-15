@@ -34,6 +34,24 @@ Options:
 | `--autoplay` | start a game immediately; the paddle plays itself |
 | `--screenshot FILE.png --after SECS` | save a screenshot after SECS seconds, then quit |
 
+### In the browser
+
+The game also builds to WebAssembly and runs in any browser with WebGL:
+
+```sh
+./web/build.sh                          # writes target/web
+python3 -m http.server -d target/web    # then open http://localhost:8000
+```
+
+`target/web` is a static site (an HTML page, the `.wasm` file and macroquad's JS
+glue), so any static host can serve it. It has to be served over HTTP; opening
+`index.html` from disk won't load the `.wasm`. `mise install` adds the
+`wasm32-unknown-unknown` target; without mise, run
+`rustup target add wasm32-unknown-unknown`.
+
+In the browser, high scores are kept in the page's `localStorage`, and Esc on the
+title screen does nothing, since a game can't close its own tab.
+
 ## Controls
 
 | input | action |
@@ -91,7 +109,9 @@ There are 14 levels. After the last one you can descend again at a higher speed.
 | `src/gfx/` | software 384×240 renderer: palette, dithering, bitmap font, sprites, the ray-cast dungeon, the HUD |
 | `src/fx.rs` | particles, transient lights, screen shake, floating text |
 | `src/audio.rs` | sound-effect and music synthesis, WAV encoding |
+| `src/storage.rs` | high-score persistence: a file natively, `localStorage` in the browser |
 | `src/main.rs` | macroquad window, input, audio playback, scaling |
+| `web/` | browser build: page, `localStorage` plugin, build script |
 | `src/bin/snapshot.rs` | headless renderer that writes PNG screenshots of scripted scenes |
 | `examples/balance.rs` | an hour of autopilot play, with stats per level |
 | `examples/perf.rs` | render timing |
