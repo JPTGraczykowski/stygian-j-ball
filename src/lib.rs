@@ -11,6 +11,7 @@ pub mod fx;
 pub mod game;
 pub mod gfx;
 pub mod levels;
+pub mod pointer;
 pub mod prompt;
 pub mod rng;
 pub mod storage;

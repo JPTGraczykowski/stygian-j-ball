@@ -216,6 +216,14 @@ impl App {
         self.touch = on;
     }
 
+    /// Whether the window should hold on to the mouse, so the cursor can't wander
+    /// off the playfield. Never when playing by touch: a held pointer stops taps
+    /// from landing where the finger is, and tapping the side panel is how a phone
+    /// pauses.
+    pub fn grabs_pointer(&self) -> bool {
+        self.screen == Screen::Playing && !self.touch
+    }
+
     /// The buttons on the current screen; none unless playing by touch.
     pub fn hotspots(&self) -> Vec<Hotspot> {
         if !self.touch {
@@ -533,10 +541,13 @@ mod tests {
     fn title_to_play_to_pause_and_back() {
         let mut app = App::new(None, 1);
         assert_eq!(app.screen, Screen::Title);
+        assert!(!app.grabs_pointer());
         press(&mut app, |i| i.confirm = true);
         assert_eq!(app.screen, Screen::Playing);
+        assert!(app.grabs_pointer());
         press(&mut app, |i| i.pause = true);
         assert_eq!(app.screen, Screen::Paused);
+        assert!(!app.grabs_pointer(), "a paused game lets go of the mouse");
         press(&mut app, |i| i.pause = true);
         assert_eq!(app.screen, Screen::Playing);
     }
@@ -599,6 +610,10 @@ mod tests {
             i.confirm = true;
         });
         assert_eq!(app.screen, Screen::Playing);
+        assert!(
+            !app.grabs_pointer(),
+            "a grabbed pointer would keep taps off the side panel"
+        );
         tap_on(&mut app, Button::Pause);
         assert_eq!(app.screen, Screen::Paused);
         tap_on(&mut app, Button::Resume);
