@@ -18,6 +18,10 @@ path = "src/main.rs"
 name = "snapshot"
 path = "src/bin/snapshot.rs"
 
+[[bin]]
+name = "icons"
+path = "src/bin/icons.rs"
+
 [dependencies]
 image = { version = "0.24.9", default-features = false, features = ["png"] }
 macroquad = { version = "0.4", features = ["audio"] }

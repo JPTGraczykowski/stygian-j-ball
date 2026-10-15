@@ -9,7 +9,7 @@ use super::font::{
 };
 use super::palette::*;
 use super::sprites::{self, BallStyle, PaddleLook};
-use crate::app::{App, MAX_SCORES, Screen};
+use crate::app::{App, Hotspot, MAX_SCORES, Screen};
 use crate::consts::*;
 use crate::fx::{Fx, PKind};
 use crate::game::{BrickKind, Game, Phase, Power, cell_rect};
@@ -104,8 +104,8 @@ pub fn roman(mut n: u32) -> String {
 // ---------------------------------------------------------------------------
 // Static frame.
 
-/// Carved stone blocks covering the whole screen.
-fn frame_stone(img: &mut Img) {
+/// Carved stone blocks covering the whole image.
+pub fn frame_stone(img: &mut Img) {
     for y in 0..img.h {
         let row = y / 12;
         let fy = y % 12;
@@ -391,6 +391,29 @@ fn banner(img: &mut Img, y: i32, text: &str, ramp: &[Rgba]) {
     draw_text_big(img, (PW - w) / 2, y, text, 2, ramp, INK);
 }
 
+/// A touch-screen button: a dark plate with a bevelled stone rim.
+fn button(img: &mut Img, h: &Hotspot) {
+    img.checker_shade(h.x, h.y, h.w, h.h, INK);
+    img.shade_rect(h.x, h.y, h.w, h.h, 0.5);
+    img.rect(h.x, h.y, h.w, h.h, FRAME[2]);
+    img.hline(h.x + 1, h.x + h.w - 2, h.y + 1, FRAME[6]);
+    img.vline(h.x + 1, h.y + 1, h.y + h.h - 2, FRAME[6]);
+    let tw = text_width(&h.label);
+    draw_text_shadow(
+        img,
+        h.x + (h.w - tw) / 2,
+        h.y + 4,
+        &h.label,
+        PARCHMENT[6],
+        INK,
+    );
+}
+
+/// "Tap" when playing by touch, "Click" otherwise.
+fn tap(app: &App) -> &'static str {
+    if app.touch { "Tap" } else { "Click" }
+}
+
 fn blink(t: f32) -> bool {
     (t * 2.2).fract() < 0.65
 }
@@ -445,6 +468,11 @@ impl Renderer {
         }
         self.draw_scroll(out, app);
         self.draw_panel(out, app, fx, t);
+        for h in app.hotspots() {
+            if !h.label.is_empty() {
+                button(out, &h);
+            }
+        }
     }
 
     fn draw_playfield(&mut self, game: &Game, app: &App, fx: &Fx, t: f32) {
@@ -739,12 +767,16 @@ impl Renderer {
                 );
                 veil(pf, 104, 58);
                 if blink(t) {
-                    draw_text_centered(pf, PW / 2, 109, "Click to begin thy descent", GOLD[6]);
+                    let msg = format!("{} to begin thy descent", tap(app));
+                    draw_text_centered(pf, PW / 2, 109, &msg, GOLD[6]);
                 }
-                draw_text_centered(pf, PW / 2, 124, "L - Tome of Lore", PARCHMENT[5]);
-                draw_text_centered(pf, PW / 2, 135, "H - Hall of Heroes", PARCHMENT[5]);
+                // By touch, these are buttons (drawn over the whole frame later).
+                if !app.touch {
+                    draw_text_centered(pf, PW / 2, 124, "L - Tome of Lore", PARCHMENT[5]);
+                    draw_text_centered(pf, PW / 2, 135, "H - Hall of Heroes", PARCHMENT[5]);
+                }
                 // A browser tab can't be closed from inside the game.
-                if !cfg!(target_arch = "wasm32") {
+                if !cfg!(target_arch = "wasm32") && !app.touch {
                     draw_text_centered(pf, PW / 2, 146, "Esc - Flee", PARCHMENT[5]);
                 }
                 let best = app.scores.first().map(|s| s.score).unwrap_or(0);
@@ -773,6 +805,7 @@ impl Renderer {
                     Power::Haste => "Orb speeds up",
                     Power::Slow => "Orb slows down",
                     Power::Grab => "Plank holds orb",
+                    Power::Crossbow if app.touch => "Tap to shoot",
                     Power::Crossbow => "Click to shoot",
                     Power::Life => "An extra life",
                     Power::Skull => "Lose a life!",
@@ -790,15 +823,16 @@ impl Renderer {
                     draw_text(pf, x + 14, y, p.name(), nc);
                     draw_text(pf, x + 14, y + 9, desc(*p), FRAME[6]);
                 }
-                draw_text(pf, 150, 26 + 7 * 19 + 1, "Mouse/arrows: move", FRAME[7]);
-                draw_text(
-                    pf,
-                    150,
-                    26 + 7 * 19 + 10,
-                    "Click/space: act  P: pause",
-                    FRAME[7],
-                );
-                draw_text(pf, 8, PH - 10, "M music   S sound   F fullscreen", FRAME[7]);
+                let (move_hint, act_hint) = if app.touch {
+                    ("Drag: move the plank", "Tap: act  Right panel: pause")
+                } else {
+                    ("Mouse/arrows: move", "Click/space: act  P: pause")
+                };
+                draw_text(pf, 150, 26 + 7 * 19 + 1, move_hint, FRAME[7]);
+                draw_text(pf, 150, 26 + 7 * 19 + 10, act_hint, FRAME[7]);
+                if !app.touch {
+                    draw_text(pf, 8, PH - 10, "M music   S sound   F fullscreen", FRAME[7]);
+                }
             }
             Screen::Scores => {
                 pf.shade_rect(0, 0, PW, PH, 0.18);
@@ -835,7 +869,8 @@ impl Renderer {
                     let sc = s.score.to_string();
                     draw_text_shadow(pf, PW - 24 - text_width(&sc), y, &sc, c, INK);
                 }
-                draw_text_centered(pf, PW / 2, PH - 12, "Click to return", FRAME[7]);
+                let msg = format!("{} to return", tap(app));
+                draw_text_centered(pf, PW / 2, PH - 12, &msg, FRAME[7]);
             }
             Screen::Paused => banner(pf, 80, "PAUSED", &GOLD),
             Screen::EnterName => {
@@ -868,7 +903,12 @@ impl Renderer {
                     &name,
                     SCROLL_INK,
                 );
-                draw_text_centered(pf, PW / 2, 128, "Enter to confirm", FRAME[7]);
+                let msg = if app.touch {
+                    "Tap to inscribe thy name"
+                } else {
+                    "Enter to confirm"
+                };
+                draw_text_centered(pf, PW / 2, 128, msg, FRAME[7]);
             }
             Screen::Ending(_) | Screen::Playing => match game.phase {
                 Phase::Cleared(_) => banner(pf, 84, "THE WAY IS CLEAR", &GOLD),
@@ -896,13 +936,12 @@ impl Renderer {
                         PARCHMENT[6],
                     );
                     if blink(t) {
-                        draw_text_centered(
-                            pf,
-                            PW / 2,
-                            111,
-                            "Click to descend again. Esc to rest.",
-                            GOLD[6],
-                        );
+                        let msg = if app.touch {
+                            "Tap to descend again."
+                        } else {
+                            "Click to descend again. Esc to rest."
+                        };
+                        draw_text_centered(pf, PW / 2, 111, msg, GOLD[6]);
                     }
                 }
                 Phase::Play => {
@@ -917,10 +956,10 @@ impl Renderer {
                         draw_text(pf, (PW - nw) / 2, 135, name, PARCHMENT[6].with_alpha(a));
                     }
                     if game.serving() && game.level_time > 0.4 && blink(t) {
-                        let msg = "Click to loose the orb";
-                        let w = text_width(msg);
+                        let msg = format!("{} to loose the orb", tap(app));
+                        let w = text_width(&msg);
                         pf.checker_shade(PW / 2 - w / 2 - 3, 154, w + 6, 11, INK);
-                        draw_text_shadow(pf, PW / 2 - w / 2, 156, msg, PARCHMENT[6], INK);
+                        draw_text_shadow(pf, PW / 2 - w / 2, 156, &msg, PARCHMENT[6], INK);
                     }
                 }
                 _ => {}
@@ -1093,16 +1132,19 @@ mod tests {
         let mut fx = Fx::new();
         let mut out = Img::new(SCREEN_W, SCREEN_H);
         let mut app = App::new(None, 5);
-        for screen in [
-            Screen::Title,
-            Screen::Lore,
-            Screen::Scores,
-            Screen::Playing,
-            Screen::Paused,
-            Screen::EnterName,
-        ] {
-            app.screen = screen;
-            r.draw(&mut out, &app, &mut fx);
+        for touch in [false, true] {
+            app.touch = touch;
+            for screen in [
+                Screen::Title,
+                Screen::Lore,
+                Screen::Scores,
+                Screen::Playing,
+                Screen::Paused,
+                Screen::EnterName,
+            ] {
+                app.screen = screen;
+                r.draw(&mut out, &app, &mut fx);
+            }
         }
         // The playfield is not just black.
         let lit = (0..PH)

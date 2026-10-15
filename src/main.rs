@@ -11,6 +11,7 @@ use stygian::fx::Fx;
 use stygian::game::Sfx;
 use stygian::gfx::canvas::Img;
 use stygian::gfx::render::Renderer;
+use stygian::prompt;
 
 fn conf() -> Conf {
     Conf {
@@ -122,10 +123,16 @@ async fn main() {
     let mut last_mouse = mouse_position();
     let mut mouse_mode = true;
     let mut fullscreen = false;
+    let mut last_frame = macroquad::miniquad::date::now();
 
     loop {
         let dt = get_frame_time().min(0.1);
         let lay = layout();
+        // The browser stops running us while the tab is hidden or the phone is
+        // locked. Don't come back to an orb already falling.
+        let now = macroquad::miniquad::date::now();
+        let stalled = now - last_frame > 0.5;
+        last_frame = now;
 
         // ---- Input ----
         let mut input = FrameInput::default();
@@ -144,7 +151,20 @@ async fn main() {
         }
         input.game.left = left;
         input.game.right = right;
+        if !touches().is_empty() {
+            app.set_touch(true);
+        } else if get_last_key_pressed().is_some() {
+            app.set_touch(false);
+        }
+
+        // Touches also arrive as left clicks.
         let click = is_mouse_button_pressed(MouseButton::Left);
+        if click {
+            input.tap = Some((
+                (mouse.0 - lay.ox) / lay.scale,
+                (mouse.1 - lay.oy) / lay.scale,
+            ));
+        }
         let space = is_key_pressed(KeyCode::Space);
         input.game.fire = click || space || is_key_pressed(KeyCode::Up);
         input.game.fire_held =
@@ -161,6 +181,13 @@ async fn main() {
         let typing = app.screen == Screen::EnterName;
         let enter = is_key_pressed(KeyCode::Enter) || is_key_pressed(KeyCode::KpEnter);
         input.confirm |= enter || (!typing && (click || space));
+        if typing && click && app.touch {
+            if let Some(name) = prompt::ask("Inscribe thy name:", &app.name) {
+                app.name.clear();
+                input.typed = name.chars().collect();
+            }
+            input.confirm = true;
+        }
         input.back = is_key_pressed(KeyCode::Escape);
         input.backspace = is_key_pressed(KeyCode::Backspace);
         while let Some(c) = get_char_pressed() {
@@ -169,7 +196,7 @@ async fn main() {
             }
         }
         if !typing {
-            input.pause = is_key_pressed(KeyCode::P);
+            input.pause = is_key_pressed(KeyCode::P) || (stalled && app.screen == Screen::Playing);
             input.lore = is_key_pressed(KeyCode::L) || is_key_pressed(KeyCode::F1);
             input.scores = is_key_pressed(KeyCode::H);
             input.toggle_music = is_key_pressed(KeyCode::M);

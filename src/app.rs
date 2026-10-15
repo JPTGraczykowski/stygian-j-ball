@@ -31,6 +31,40 @@ pub struct FrameInput {
     pub backspace: bool,
     pub toggle_sound: bool,
     pub toggle_music: bool,
+    /// Where a click or tap landed this frame, in virtual-screen pixels.
+    pub tap: Option<(f32, f32)>,
+}
+
+/// An on-screen button for touch screens. Each one stands in for a key.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Button {
+    Pause,
+    Resume,
+    Flee,
+    Lore,
+    Scores,
+    Music,
+    Sound,
+}
+
+/// A tap target in virtual-screen pixels. One with an empty label isn't drawn.
+#[derive(Clone, Debug)]
+pub struct Hotspot {
+    pub button: Button,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub label: String,
+}
+
+impl Hotspot {
+    pub fn contains(&self, x: f32, y: f32) -> bool {
+        x >= self.x as f32
+            && x < (self.x + self.w) as f32
+            && y >= self.y as f32
+            && y < (self.y + self.h) as f32
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -58,6 +92,8 @@ pub struct App {
     pub music_on: bool,
     pub quit: bool,
     pub time: f32,
+    /// Playing with a finger: show tap hints and on-screen buttons.
+    pub touch: bool,
     seed: u64,
 }
 
@@ -158,6 +194,7 @@ impl App {
             music_on: true,
             quit: false,
             time: 0.0,
+            touch: false,
             seed,
         };
         app.say("Welcome, adventurer, to the Stygian Abyss.");
@@ -169,6 +206,84 @@ impl App {
         self.log.push((msg.into(), 0.0));
         if self.log.len() > MAX_LOG {
             self.log.remove(0);
+        }
+    }
+
+    pub fn set_touch(&mut self, on: bool) {
+        if on && !self.touch {
+            self.say("Drag thy plank with a finger. Tap the panel at right to rest.");
+        }
+        self.touch = on;
+    }
+
+    /// The buttons on the current screen; none unless playing by touch.
+    pub fn hotspots(&self) -> Vec<Hotspot> {
+        if !self.touch {
+            return Vec::new();
+        }
+        let on_off = |on: bool| if on { "on" } else { "off" };
+        // Two side-by-side buttons centred on the playfield, `y` from its top.
+        let pair = |y: i32, a: (Button, String), b: (Button, String)| {
+            let (w, h, gap) = (100, 16, 8);
+            let x = PF_X + (PF_W as i32 - 2 * w - gap) / 2;
+            [
+                Hotspot {
+                    button: a.0,
+                    x,
+                    y: PF_Y + y,
+                    w,
+                    h,
+                    label: a.1,
+                },
+                Hotspot {
+                    button: b.0,
+                    x: x + w + gap,
+                    y: PF_Y + y,
+                    w,
+                    h,
+                    label: b.1,
+                },
+            ]
+        };
+        let sound = |y: i32| {
+            pair(
+                y,
+                (Button::Music, format!("Music: {}", on_off(self.music_on))),
+                (Button::Sound, format!("Sound: {}", on_off(self.sound_on))),
+            )
+        };
+        match self.screen {
+            Screen::Title => [
+                pair(
+                    121,
+                    (Button::Lore, "Tome of Lore".into()),
+                    (Button::Scores, "Hall of Heroes".into()),
+                ),
+                sound(140),
+            ]
+            .concat(),
+            Screen::Paused => [
+                pair(
+                    108,
+                    (Button::Resume, "Continue".into()),
+                    (Button::Flee, "Flee the Abyss".into()),
+                ),
+                sound(127),
+            ]
+            .concat(),
+            // The whole side panel, so it's easy to hit mid-game.
+            Screen::Playing => {
+                let x = PF_X + PF_W as i32;
+                vec![Hotspot {
+                    button: Button::Pause,
+                    x,
+                    y: 0,
+                    w: SCREEN_W - x,
+                    h: SCREEN_H,
+                    label: String::new(),
+                }]
+            }
+            _ => Vec::new(),
         }
     }
 
@@ -233,6 +348,25 @@ impl App {
     /// Advance one frame. Returns the events produced by the visible game and
     /// whether they came from the (muted) demo.
     pub fn update(&mut self, dt: f32, input: &FrameInput) -> (Vec<Event>, bool) {
+        let mut input = input.clone();
+        if let Some((x, y)) = input.tap
+            && let Some(h) = self.hotspots().into_iter().find(|h| h.contains(x, y))
+        {
+            // The tap was meant for the button, not the game.
+            input.confirm = false;
+            input.game.fire = false;
+            input.game.fire_held = false;
+            input.game.paddle_x = None;
+            match h.button {
+                Button::Pause | Button::Resume => input.pause = true,
+                Button::Flee => input.back = true,
+                Button::Lore => input.lore = true,
+                Button::Scores => input.scores = true,
+                Button::Music => input.toggle_music = true,
+                Button::Sound => input.toggle_sound = true,
+            }
+        }
+        let input = &input;
         self.time += dt;
         for m in &mut self.log {
             m.1 += dt;
@@ -289,7 +423,11 @@ impl App {
             Screen::Playing => {
                 if input.pause || input.back {
                     self.screen = Screen::Paused;
-                    self.say("Thou restest a moment. (P to continue, Esc to flee)");
+                    if self.touch {
+                        self.say("Thou restest a moment.");
+                    } else {
+                        self.say("Thou restest a moment. (P to continue, Esc to flee)");
+                    }
                     return (Vec::new(), false);
                 }
                 if self.game.phase == Phase::Victory && input.confirm {
@@ -426,6 +564,52 @@ mod tests {
         assert_eq!(app.scores[0].name, "Shamin");
         assert_eq!(app.scores[0].score, 1234);
         assert_eq!(app.highlight, Some(0));
+    }
+
+    fn tap_on(app: &mut App, button: Button) {
+        let h = app
+            .hotspots()
+            .into_iter()
+            .find(|h| h.button == button)
+            .expect("button on screen");
+        let at = ((h.x + h.w / 2) as f32, (h.y + h.h / 2) as f32);
+        // A tap is also a click.
+        press(app, |i| {
+            i.tap = Some(at);
+            i.confirm = true;
+            i.game.fire = true;
+        });
+    }
+
+    #[test]
+    fn touch_buttons_stand_in_for_keys() {
+        let mut app = App::new(None, 4);
+        assert!(app.hotspots().is_empty());
+        app.set_touch(true);
+        tap_on(&mut app, Button::Lore);
+        assert_eq!(app.screen, Screen::Lore);
+        press(&mut app, |i| i.confirm = true);
+        tap_on(&mut app, Button::Music);
+        assert!(!app.music_on);
+        assert_eq!(app.screen, Screen::Title);
+
+        // A tap anywhere else starts the game, as a click does.
+        press(&mut app, |i| {
+            i.tap = Some((150.0, 60.0));
+            i.confirm = true;
+        });
+        assert_eq!(app.screen, Screen::Playing);
+        tap_on(&mut app, Button::Pause);
+        assert_eq!(app.screen, Screen::Paused);
+        tap_on(&mut app, Button::Resume);
+        assert_eq!(app.screen, Screen::Playing);
+        assert!(
+            app.game.serving(),
+            "the resuming tap must not loose the orb"
+        );
+        tap_on(&mut app, Button::Pause);
+        tap_on(&mut app, Button::Flee);
+        assert!(matches!(app.screen, Screen::Ending(_)));
     }
 
     #[test]
