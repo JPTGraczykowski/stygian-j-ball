@@ -19,6 +19,6 @@ fi
 
 mkdir -p "$out"
 cp target/wasm32-unknown-unknown/release/stygian-j-ball.wasm "$out/"
-cp "$macroquad/js/mq_js_bundle.js" web/index.html web/storage.js web/prompt.js web/pointer.js \
-  web/sw.js web/manifest.webmanifest web/icon-192.png web/icon-512.png "$out/"
+cp "$macroquad/js/mq_js_bundle.js" web/index.html web/audio.js web/storage.js web/prompt.js \
+  web/pointer.js web/sw.js web/manifest.webmanifest web/icon-192.png web/icon-512.png "$out/"
 echo "built $out"

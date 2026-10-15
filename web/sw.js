@@ -4,6 +4,7 @@ const CACHE = "stygian-j-ball";
 const FILES = [
   "./",
   "index.html",
+  "audio.js",
   "mq_js_bundle.js",
   "storage.js",
   "prompt.js",
