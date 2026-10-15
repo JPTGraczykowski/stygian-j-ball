@@ -1,0 +1,4 @@
+# macroquad's audio backend imports its functions from the JS bundle without naming a
+# wasm import module; newer rust-lld rejects those unless undefined symbols are allowed.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--allow-undefined"]

@@ -3,6 +3,7 @@
 
 use crate::consts::*;
 use crate::game::{Event, Game, Input, Phase};
+use crate::storage;
 use std::path::PathBuf;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -60,6 +61,12 @@ pub struct App {
     seed: u64,
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn default_scores_path() -> Option<PathBuf> {
+    Some(PathBuf::from("stygian-j-ball/scores.tsv"))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn default_scores_path() -> Option<PathBuf> {
     let base = std::env::var_os("XDG_DATA_HOME")
         .map(PathBuf::from)
@@ -132,7 +139,7 @@ impl App {
     pub fn new(scores_path: Option<PathBuf>, seed: u64) -> App {
         let scores = scores_path
             .as_ref()
-            .and_then(|p| std::fs::read_to_string(p).ok())
+            .and_then(|p| storage::read(p))
             .map(|t| parse_scores(&t))
             .unwrap_or_default();
         let mut demo = Game::new(seed ^ 0xD3);
@@ -179,10 +186,7 @@ impl App {
 
     fn save_scores(&self) {
         if let Some(p) = &self.scores_path {
-            if let Some(dir) = p.parent() {
-                let _ = std::fs::create_dir_all(dir);
-            }
-            let _ = std::fs::write(p, format_scores(&self.scores));
+            storage::write(p, &format_scores(&self.scores));
         }
     }
 

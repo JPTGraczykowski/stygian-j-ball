@@ -743,7 +743,10 @@ impl Renderer {
                 }
                 draw_text_centered(pf, PW / 2, 124, "L - Tome of Lore", PARCHMENT[5]);
                 draw_text_centered(pf, PW / 2, 135, "H - Hall of Heroes", PARCHMENT[5]);
-                draw_text_centered(pf, PW / 2, 146, "Esc - Flee", PARCHMENT[5]);
+                // A browser tab can't be closed from inside the game.
+                if !cfg!(target_arch = "wasm32") {
+                    draw_text_centered(pf, PW / 2, 146, "Esc - Flee", PARCHMENT[5]);
+                }
                 let best = app.scores.first().map(|s| s.score).unwrap_or(0);
                 if best > 0 {
                     draw_text_shadow(pf, 4, PH - 11, &format!("Best: {best}"), GOLD[4], INK);
