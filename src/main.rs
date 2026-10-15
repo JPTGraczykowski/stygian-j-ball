@@ -87,10 +87,8 @@ fn layout() -> Layout {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let seed = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
-        .unwrap_or(7);
+    // miniquad's clock also works in the browser, where `SystemTime::now` panics.
+    let seed = (macroquad::miniquad::date::now() * 1e9) as u64;
     let opts = parse_opts();
     let mut app = App::new(default_scores_path(), seed);
     if opts.mute {
@@ -189,7 +187,12 @@ async fn main() {
             fx.clear();
         }
         if app.quit {
-            break;
+            // A browser tab has no window to close; stay on the title screen.
+            if cfg!(target_arch = "wasm32") {
+                app.quit = false;
+            } else {
+                break;
+            }
         }
         let mut played: Vec<Sfx> = Vec::new();
         for e in &events {
