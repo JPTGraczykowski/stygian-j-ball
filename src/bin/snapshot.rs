@@ -134,4 +134,13 @@ fn main() {
     app.screen = Screen::Playing;
     r.draw(&mut img, &app, &mut fx);
     save(&img, &format!("{out}/victory.png"), 3);
+
+    // The on-screen buttons shown when playing by touch.
+    app.touch = true;
+    app.screen = Screen::Title;
+    r.draw(&mut img, &app, &mut fx);
+    save(&img, &format!("{out}/touch-title.png"), 3);
+    app.screen = Screen::Paused;
+    r.draw(&mut img, &app, &mut fx);
+    save(&img, &format!("{out}/touch-paused.png"), 3);
 }

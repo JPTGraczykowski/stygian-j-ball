@@ -2,8 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Stygian J-Ball</title>
+<!-- Installable from the phone's home screen: fullscreen, landscape, offline. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="J-Ball">
 <style>
   html, body {
     margin: 0;
@@ -13,6 +22,9 @@
     background: #000;
     color: #a89060;
     font: 16px/1.4 Georgia, serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
   /* The message sits behind the canvas and is covered once the game draws. */
   #loading {
@@ -29,22 +41,48 @@
     outline: none;
     touch-action: none;
   }
+  /* The game is landscape; in portrait it would be tiny. */
+  #turn {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    place-items: center;
+    padding: 16px;
+    text-align: center;
+    background: #000;
+  }
+  #turn small {
+    color: #6a5a40;
+  }
+  @media (orientation: portrait) and (pointer: coarse) {
+    #turn:not(.dismissed) {
+      display: grid;
+    }
+  }
 </style>
 </head>
 <body>
 <div id="loading">Descending into the Abyss&hellip;</div>
 <canvas id="glcanvas" tabindex="1"></canvas>
+<div id="turn"><p>Turn thy device sideways.<br><small>(or tap to play as it is)</small></p></div>
 <script>
   // The bundle's networking plugin assigns this undeclared global under "use strict".
   var register_plugin;
 </script>
 <script src="mq_js_bundle.js"></script>
 <script src="storage.js"></script>
+<script src="prompt.js"></script>
 <script>
   // `canvas` is the #glcanvas global that the bundle declares.
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   canvas.focus();
   load("stygian-j-ball.wasm");
+  const turn = document.getElementById("turn");
+  turn.addEventListener("click", () => turn.classList.add("dismissed"));
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 </script>
 </body>
 </html>

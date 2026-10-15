@@ -5,11 +5,13 @@ presentation is pixel art in the style of *Ultima Underworld*: a torch-lit dunge
 corridor behind the bricks, a carved-stone frame, a gargoyle, vitality and mana flasks,
 a compass, and a parchment message scroll.
 
-Everything is generated in code. There are no image or sound files: sprites are
-string-art or procedural noise, the corridor is ray-cast once and re-lit with dithering
-every frame, and the sound effects and dungeon music are synthesised at startup.
+Everything is generated in code. There are no hand-made image or sound files: sprites
+are string-art or procedural noise, the corridor is ray-cast once and re-lit with
+dithering every frame, and the sound effects and dungeon music are synthesised at
+startup.
 
-**[Play it in your browser](https://jptgraczykowski.github.io/stygian-j-ball/)**
+**[Play it in your browser](https://jptgraczykowski.github.io/stygian-j-ball/)**, on a
+computer or on a phone.
 
 | | |
 | --- | --- |
@@ -18,6 +20,21 @@ every frame, and the sound effects and dungeon music are synthesised at startup.
 
 The screenshots come from `cargo run --release --bin snapshot`, which renders
 scripted scenes with the game's own renderer.
+
+## Playing on a phone
+
+Open [the game's page](https://jptgraczykowski.github.io/stygian-j-ball/) and hold the
+phone sideways. To get rid of the browser bars and play offline, add it to your home
+screen, where it opens like an app:
+
+- **Android (Chrome):** tap the ⋮ menu, then **Add to Home screen**, then
+  **Install**. Chrome may offer to install it on its own with a banner.
+- **iPhone or iPad (Safari):** tap the **Share** button (on newer iOS it's in the
+  **⋯** menu), then **Add to Home Screen**, then **Add**.
+
+Other browsers have the same option in their menus, usually called *Install* or *Add
+to Home screen*. Launch it once while online, and after that it works without a
+connection. Touch controls are listed under [Controls](#controls).
 
 ## Running
 
@@ -54,6 +71,12 @@ glue), so any static host can serve it. It has to be served over HTTP; opening
 In the browser, high scores are kept in the page's `localStorage`, and Esc on the
 title screen does nothing, since a game can't close its own tab.
 
+Installing to the home screen (see [Playing on a phone](#playing-on-a-phone)) comes
+from `web/manifest.webmanifest`, which asks for fullscreen and landscape, and from
+`web/sw.js`, which caches the files for offline play. The service worker fetches from
+the network first, so a new deploy shows up on the next launch. The home-screen icons, `web/icon-*.png`, are rendered from the
+game's sprites by `cargo run --release --bin icons -- web`.
+
 Every push to `main` rebuilds the site and publishes it to
 [GitHub Pages](https://jptgraczykowski.github.io/stygian-j-ball/)
 (`.github/workflows/pages.yml`).
@@ -69,6 +92,12 @@ Every push to `main` rebuilds the site and publishes it to
 | H | Hall of Heroes (high scores) |
 | M / S | toggle music / sound effects |
 | F or F11 | toggle fullscreen |
+
+On a touch screen, drag anywhere to move the plank and tap to launch or shoot. Tap the
+side panel to pause. The title and pause screens show buttons for the Tome of Lore, the
+Hall of Heroes, music and sound. To enter a name for the Hall of Heroes, tap the
+screen: a phone shows no keyboard for a canvas, so the game asks with the browser's
+own dialog. Leaving the tab or locking the phone pauses the game.
 
 High scores are saved to `$XDG_DATA_HOME/stygian-j-ball/scores.tsv` (by default
 `~/.local/share/stygian-j-ball/scores.tsv`).
@@ -117,13 +146,15 @@ There are 14 levels. After the last one you can descend again at a higher speed.
 | `src/audio.rs` | sound-effect and music synthesis, WAV encoding |
 | `src/storage.rs` | high-score persistence: a file natively, `localStorage` in the browser |
 | `src/main.rs` | macroquad window, input, audio playback, scaling |
-| `web/` | browser build: page, `localStorage` plugin, build script |
+| `src/prompt.rs` | asks for the player's name with the browser's `prompt()` dialog |
+| `web/` | browser build: page, `localStorage` and `prompt()` plugins, web app manifest, service worker, icons, build script |
 | `src/bin/snapshot.rs` | headless renderer that writes PNG screenshots of scripted scenes |
+| `src/bin/icons.rs` | renders the home-screen icons |
 | `examples/balance.rs` | an hour of autopilot play, with stats per level |
 | `examples/perf.rs` | render timing |
 
 ```sh
-cargo test --release                              # 49 tests, including a 15-minute autopilot soak
+cargo test --release                              # 50 tests, including a 15-minute autopilot soak
 cargo run --release --bin snapshot -- shots       # PNG screenshots in ./shots
 cargo run --release --example balance             # balance statistics
 ```
