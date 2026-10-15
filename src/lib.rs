@@ -12,3 +12,4 @@ pub mod game;
 pub mod gfx;
 pub mod levels;
 pub mod rng;
+pub mod storage;
