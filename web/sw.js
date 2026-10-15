@@ -7,6 +7,7 @@ const FILES = [
   "mq_js_bundle.js",
   "storage.js",
   "prompt.js",
+  "pointer.js",
   "stygian-j-ball.wasm",
   "manifest.webmanifest",
   "icon-192.png",

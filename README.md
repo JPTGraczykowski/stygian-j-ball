@@ -93,6 +93,12 @@ Every push to `main` rebuilds the site and publishes it to
 | M / S | toggle music / sound effects |
 | F or F11 | toggle fullscreen |
 
+While you play with a mouse, the game holds on to it, so the cursor can't drift off
+the playfield. The plank moves as far as the mouse does, and turns back the moment
+the mouse does. Pausing gives the mouse back, and so does switching to another window
+or, in a browser, pressing Esc. Either one also pauses the game. This never applies to
+touch screens.
+
 On a touch screen, drag anywhere to move the plank and tap to launch or shoot. Tap the
 side panel to pause. The title and pause screens show buttons for the Tome of Lore, the
 Hall of Heroes, music and sound. To enter a name for the Hall of Heroes, tap the

@@ -2,6 +2,8 @@
 //! framebuffer which is uploaded as a texture and scaled up with nearest filtering.
 
 use macroquad::audio::{PlaySoundParams, Sound, load_sound_from_bytes, play_sound, stop_sound};
+use macroquad::input::utils::{register_input_subscriber, repeat_all_miniquad_input};
+use macroquad::miniquad::EventHandler;
 use macroquad::prelude::*;
 use std::collections::HashMap;
 use stygian::app::{App, FrameInput, Screen, autopilot, default_scores_path};
@@ -11,7 +13,7 @@ use stygian::fx::Fx;
 use stygian::game::Sfx;
 use stygian::gfx::canvas::Img;
 use stygian::gfx::render::Renderer;
-use stygian::prompt;
+use stygian::{pointer, prompt};
 
 fn conf() -> Conf {
     Conf {
@@ -70,6 +72,20 @@ fn parse_opts() -> Opts {
     o
 }
 
+/// Hears when the window loses focus. macroquad only passes that on as an event.
+#[derive(Default)]
+struct FocusWatch {
+    lost: bool,
+}
+
+impl EventHandler for FocusWatch {
+    fn update(&mut self) {}
+    fn draw(&mut self) {}
+    fn window_minimized_event(&mut self) {
+        self.lost = true;
+    }
+}
+
 struct Layout {
     scale: f32,
     ox: f32,
@@ -122,6 +138,9 @@ async fn main() {
 
     let mut last_mouse = mouse_position();
     let mut mouse_mode = true;
+    // Whether the window holds the mouse; see `App::grabs_pointer`.
+    let mut grabbed = false;
+    let focus_events = register_input_subscriber();
     let mut fullscreen = false;
     let mut last_frame = macroquad::miniquad::date::now();
 
@@ -138,7 +157,6 @@ async fn main() {
         let mut input = FrameInput::default();
         let mouse = mouse_position();
         let moved = (mouse.0 - last_mouse.0).abs() > 0.01 || (mouse.1 - last_mouse.1).abs() > 0.01;
-        last_mouse = mouse;
         let left = is_key_down(KeyCode::Left) || is_key_down(KeyCode::A);
         let right = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);
         if left || right {
@@ -146,9 +164,17 @@ async fn main() {
         } else if moved {
             mouse_mode = true;
         }
-        if mouse_mode {
+        if grabbed {
+            // The pointer is held, so `mouse_position` only adds up how far the mouse
+            // moved. Move the plank by as much; the game keeps it in the playfield.
+            if mouse_mode && moved {
+                input.game.paddle_x =
+                    Some(app.game.paddle.x + (mouse.0 - last_mouse.0) / lay.scale);
+            }
+        } else if mouse_mode {
             input.game.paddle_x = Some((mouse.0 - lay.ox) / lay.scale - PF_X as f32);
         }
+        last_mouse = mouse;
         input.game.left = left;
         input.game.right = right;
         if !touches().is_empty() {
@@ -195,8 +221,14 @@ async fn main() {
                 input.typed.push(c);
             }
         }
+        // Taking the mouse back (switching windows, or Esc in a browser, which
+        // doesn't pass the key on) pauses, so the game lets go of it.
+        let mut focus = FocusWatch::default();
+        repeat_all_miniquad_input(&mut focus, focus_events);
+        let mouse_lost = pointer::lock_lost() || focus.lost;
         if !typing {
-            input.pause = is_key_pressed(KeyCode::P) || (stalled && app.screen == Screen::Playing);
+            input.pause = is_key_pressed(KeyCode::P)
+                || (app.screen == Screen::Playing && (stalled || (grabbed && mouse_lost)));
             input.lore = is_key_pressed(KeyCode::L) || is_key_pressed(KeyCode::F1);
             input.scores = is_key_pressed(KeyCode::H);
             input.toggle_music = is_key_pressed(KeyCode::M);
@@ -263,6 +295,11 @@ async fn main() {
         }
 
         show_mouse(!(app.screen == Screen::Playing));
+        let grab = app.grabs_pointer() && !opts.autoplay;
+        if grab != grabbed {
+            grabbed = grab;
+            set_cursor_grab(grab);
+        }
 
         // ---- Draw ----
         renderer.draw(&mut frame, &app, &mut fx);
