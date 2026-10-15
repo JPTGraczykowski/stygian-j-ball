@@ -9,6 +9,8 @@ Everything is generated in code. There are no image or sound files: sprites are
 string-art or procedural noise, the corridor is ray-cast once and re-lit with dithering
 every frame, and the sound effects and dungeon music are synthesised at startup.
 
+**[Play it in your browser](https://jptgraczykowski.github.io/stygian-j-ball/)**
+
 | | |
 | --- | --- |
 | ![Title screen](docs/screenshots/title.png) | ![Fireball, crossbow and split orbs on level X](docs/screenshots/fire.png) |
@@ -44,14 +46,17 @@ python3 -m http.server -d target/web    # then open http://localhost:8000
 ```
 
 `target/web` is a static site (an HTML page, the `.wasm` file and macroquad's JS
-glue), so any static host can serve it. Every push to `main` publishes it to GitHub
-Pages (`.github/workflows/pages.yml`). It has to be served over HTTP; opening
+glue), so any static host can serve it. It has to be served over HTTP; opening
 `index.html` from disk won't load the `.wasm`. `mise install` adds the
 `wasm32-unknown-unknown` target; without mise, run
 `rustup target add wasm32-unknown-unknown`.
 
 In the browser, high scores are kept in the page's `localStorage`, and Esc on the
 title screen does nothing, since a game can't close its own tab.
+
+Every push to `main` rebuilds the site and publishes it to
+[GitHub Pages](https://jptgraczykowski.github.io/stygian-j-ball/)
+(`.github/workflows/pages.yml`).
 
 ## Controls
 
