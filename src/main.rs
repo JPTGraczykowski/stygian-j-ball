@@ -156,7 +156,13 @@ async fn main() {
         // ---- Input ----
         let mut input = FrameInput::default();
         let mouse = mouse_position();
-        let moved = (mouse.0 - last_mouse.0).abs() > 0.01 || (mouse.1 - last_mouse.1).abs() > 0.01;
+        // Taken every frame so moves made before the grab don't pile up.
+        let held_dx = pointer::take_dx();
+        let dx = match held_dx {
+            Some(d) if grabbed => d,
+            _ => mouse.0 - last_mouse.0,
+        };
+        let moved = dx.abs() > 0.01 || (mouse.1 - last_mouse.1).abs() > 0.01;
         let left = is_key_down(KeyCode::Left) || is_key_down(KeyCode::A);
         let right = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);
         if left || right {
@@ -168,8 +174,7 @@ async fn main() {
             // The pointer is held, so `mouse_position` only adds up how far the mouse
             // moved. Move the plank by as much; the game keeps it in the playfield.
             if mouse_mode && moved {
-                input.game.paddle_x =
-                    Some(app.game.paddle.x + (mouse.0 - last_mouse.0) / lay.scale);
+                input.game.paddle_x = Some(app.game.paddle.x + dx / lay.scale);
             }
         } else if mouse_mode {
             input.game.paddle_x = Some((mouse.0 - lay.ox) / lay.scale - PF_X as f32);
